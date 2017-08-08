@@ -46,8 +46,6 @@ plot_bar(practice2017,x="Disease_status")
 plot_bar(practice2017,x="Disease_status", fill="Phylum")
 #You can also use ggplot for better plotting, but takes a bit of data wrangling, more on that below.
 
-#Create object of sample data for easy reference in R studio
-practice2017_data<-as.matrix(sample_data(practice2017))
 #Five number summary of sequence coverage of samples
 fivenum(colSums(otu_table(practice2017)))
 #View number of sequences per sample
@@ -58,15 +56,14 @@ seq_sums<-data.frame(sort(sample_sums(practice2017)))
 #Create a rarefaction curve to find the appropraite place for rarefying your data. Uses vegan for calculating the curve, and base R for plotting. 
 #Plot rarecurve
 t_otu_practice2017<-as.matrix(t(otu_table(practice2017)))
-type<-practice2017_data$Type
 #col <- c("forestgreen", "red", "hotpink", "black", "blue")
 #cols<-col[sinus2017_data$Type]
-curve<-rarecurve(t_otu_practice2017, step=1000, label=FALSE, xlim= c(0,50000), ylim=c(0,500), ylab = "OTU Count", xaxt="n")
-axis(1, xaxp=c(0, 50000, 10))
+curve<-rarecurve(t_otu_practice2017, step=500, label=FALSE, xlim= c(0,12000), ylim=c(0,1500), ylab = "OTU Count", xaxt="n")
+axis(1, xaxp=c(0, 12000, 10))
 #place a line over the curve where you proppose to rarefy, in this example I used 6000 sequences
-abline(v=6000, col="red")
+abline(v=5381, col="red")
 #Then rarefy at the appropriate depth - in this example I used 6000 sequences.
-practice2017_rare<-rarefy_even_depth(sinus2017, sample.size=6000, rngseed=711, replace=FALSE, trimOTUs=TRUE)
+practice2017_rare<-rarefy_even_depth(practice2017, sample.size=5381, rngseed=711, replace=FALSE, trimOTUs=TRUE)
 ```
 #subsetting phyloseq objects
 ```{r, subsetting phyloseq objects}
