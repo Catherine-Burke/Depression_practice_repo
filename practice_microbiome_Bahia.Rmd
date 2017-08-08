@@ -1,0 +1,121 @@
+---
+title: "Practice Analysis Microbiome"
+author: "Cath Burke"
+date: "1 August 2017"
+output: html_document
+---
+
+
+```{r load packages}
+library("phyloseq")
+library("ggplot2")
+library("vegan")
+library("reshape2")
+library("tidyverse")
+```
+#Load your data into Phyloseq
+```{r Loading data}
+#Open script in your working directory
+#Set working directory, to source file location
+#Create a folder called data in this directory - store all your raw data here
+#first we assign names to filesbiom table must be
+biom<-"data/otu_table_final_json.biom"
+#Biom table must be in json format
+map<-read.table("data/mapping_practice_depression_corrected.txt", header=TRUE, row.names=1)
+#Normally would just use the read_tree command, but this particular tree is a bit different to ususal.
+tree<-read_tree("data/rep_set.tre")
+#import data to phyloseq
+practice2017<-import_biom(biom, treefilename=tree)
+practice_map<-sample_data(map)
+practice2017<-merge_phyloseq(practice2017,practice_map)
+practice2017
+colnames(tax_table(practice2017)) = c("Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species")
+```
+#Explore the data
+```{r, explore data}
+#look at elements of taxonomy table and otu table
+#This shows the first 10 rows of the taxonomy table for your phyloseq object
+tax_table(practice2017)[1:10]
+#You can subset to a specific row by name - insert a row name in the ""
+tax_table(practice2017)["",]
+#this returns the first 10 rows and columns of the otu table
+otu_table(practice2017)[1:10,1:10]
+#plot data - generic plotting options in phyloseq.
+plot_bar(practice2017)
+plot_bar(practice2017,x="Disease_status")
+plot_bar(practice2017,x="Disease_status", fill="Phylum")
+#You can also use ggplot for better plotting, but takes a bit of data wrangling, more on that below.
+
+#Create object of sample data for easy reference in R studio
+practice2017_data<-as.matrix(sample_data(practice2017))
+#Five number summary of sequence coverage of samples
+fivenum(colSums(otu_table(practice2017)))
+#View number of sequences per sample
+seq_sums<-data.frame(sort(sample_sums(practice2017)))
+```
+#Rarefaction analysis
+```{r, rarefaction}
+#Create a rarefaction curve to find the appropraite place for rarefying your data. Uses vegan for calculating the curve, and base R for plotting. 
+#Plot rarecurve
+t_otu_practice2017<-as.matrix(t(otu_table(practice2017)))
+type<-practice2017_data$Type
+#col <- c("forestgreen", "red", "hotpink", "black", "blue")
+#cols<-col[sinus2017_data$Type]
+curve<-rarecurve(t_otu_practice2017, step=1000, label=FALSE, xlim= c(0,50000), ylim=c(0,500), ylab = "OTU Count", xaxt="n")
+axis(1, xaxp=c(0, 50000, 10))
+#place a line over the curve where you proppose to rarefy, in this example I used 6000 sequences
+abline(v=6000, col="red")
+#Then rarefy at the appropriate depth - in this example I used 6000 sequences.
+practice2017_rare<-rarefy_even_depth(sinus2017, sample.size=6000, rngseed=711, replace=FALSE, trimOTUs=TRUE)
+```
+#subsetting phyloseq objects
+```{r, subsetting phyloseq objects}
+#You many want to remove certain samples or OTUs from the analysis.  There are several ways to do this in Phyloseq, all require creating a new Phyloseq object.
+#First example, subset to samples that match a string in a column of the sample data (i.e. the mapping file)
+practice2017_rare_controls<-subset_samples(practice2017_rare, Disease_status=="control")
+sample_data(practice2017_rare_controls)
+#Second example, subset to samples that match everything except the string in a column of the sample data
+practice2017_rare_disease<-subset_samples(practice2017_rare, Disease_status!="control")
+#Now check the sample data for your new object to make sure it did what you think it did.  In this example I'm only returning the column that lists Disease_status
+sample_data(practice2017_rare_disease)$Disease_status
+#Third example, subset to samples that match several strings in a column of the sample data
+practice2017_rare_disease2<-subset_samples(practice2017_rare, Disease_status%in%c("mdd", "recovering_mdd"))
+#And check the sample data as before.
+sample_data(practice2017_rare_disease2)$Disease_status
+#Forth example, subset to samples that match everything except several strings in a column of the sample data
+practice2017_rare_controls2<-subset_samples(practice2017_rare, !(Disease_status%in%c("mdd", "recovering_mdd")))
+#And check the sample data as before.
+sample_data(practice2017_rare_controls2)$Disease_status
+```
+
+#Alpha diversity analysis
+```{r, alpha diversity}
+#Once you have rarefied your data, explore the level of alpha diversity.  Uses phyloseq plot function which is built on ggplot2.  The x value will determine how samples are grouped along the x axis.
+plot_richness(practice2017_rare, x="Disease_status", measures=c("Observed", "Chao1","Shannon"))+
+  geom_boxplot()+xlab("Group")+ylab("Diversity")
+#Convert alpha diversity estimates to a data form we can use for statistical testing
+practice2017_rare_richness<-as.matrix(estimate_richness(practice2017_rare, measures=c("Observed","Chao1","Shannon")))
+row.names(practice2017_rare_richness)<-row.names(sample_data(practice2017_rare))
+sinus_swabs_richness<-cbind(practice2017_rare_richness,sample_data(practice2017_rare))
+practice2017_rare_richness
+#For comaparisons of alpha diversity of more than two groups, use the Kruskal-Wallis test 
+#Test if alpha diversity (observed) is significantly different between Disease_status groups
+kruskal.test(Observed ~ Disease_status, data=practice2017_rare_richness)
+#Now test if diversity is significantly different between controls and patients who were ever depressed (and recovering mdd groups (Original_status)
+#only two groups here so use Man-Whitney U test
+wilcox.test(Observed ~ Original_status, data=practice2017_rare_richness)
+```
+###UP TO HERE - DO EXAMINATION OF NEGATIVE AND POSITIVE CONTROLS
+
+
+##THEN 
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
