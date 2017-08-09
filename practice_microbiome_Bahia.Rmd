@@ -120,15 +120,17 @@ practice2017_rare_rel_fil1<-filter_taxa(practice2017_rare_rel, function(x) mean(
 practice_smelt<-psmelt(practice2017_rare_rel_fil1)
 head(practice_smelt)
 #Let's plot the overall taxa by group (average relative abundance per group) and colour by phyla
+#plot every sample by phyla, faceting into disease groups
 ggplot(practice_smelt, aes(x=Sample, y=Abundance, fill=Phylum))+geom_bar(stat="identity")+facet_grid(.~Disease_status, scales="free")
-
+#calculate the sum of abundance for each phyla per patient, then average out across groups and plot.
 phyla_plot<-practice_smelt %>% group_by(Sample, Phylum, Disease_status) %>%
   summarise(phylum_sum=sum(Abundance))%>%
   group_by(Disease_status, Phylum) %>% summarise(phylum_av=mean(phylum_sum))
-                                                
-
 ggplot(phyla_plot, aes(x=Disease_status, y=phylum_av, fill=Phylum)) + geom_bar(stat="identity")+facet_grid(.~Disease_status, scales="free")+
   guides(fill=guide_legend(ncol=1))+theme(axis.text.x = element_text(angle = 90, hjust = 1),legend.key.size = unit(0.5,"line")) +ggtitle("Average Phyla per Group")
+
+
+
 ```
 
 ## Including Plots
