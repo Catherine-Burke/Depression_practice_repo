@@ -105,9 +105,31 @@ kruskal.test(Observed ~ Disease_status, data=practice2017_rare_richness)
 #wilcox.test(Observed ~ Disease_status, data=practice2017_rare_richness)
 ```
 ###UP TO HERE - DO EXAMINATION OF NEGATIVE AND POSITIVE CONTROLS
+##Data cleaning and transformation
+```{r data cleaning and transformation}
+#Create an object with realtive abundances instead of counts
+practice2017_rare_rel<-transform_sample_counts(practice2017_rare, function(x) x/sum(x))
+#Filter OTUs present at less that 0.001% mean abundance
+practice2017_rare_rel_fil1<-filter_taxa(practice2017_rare_rel, function(x) mean(x) > 1e-5, TRUE)
+```
 
+##Plotting functions
+```{r plotting}
+#I use the psmelt function to get the data into a form that ggplot likes, dplyr to filter that data I want, and ggplot to do the plotting
+#Melt data into a "long" form
+practice_smelt<-psmelt(practice2017_rare_rel_fil1)
+head(practice_smelt)
+#Let's plot the overall taxa by group (average relative abundance per group) and colour by phyla
+ggplot(practice_smelt, aes(x=Sample, y=Abundance, fill=Phylum))+geom_bar(stat="identity")+facet_grid(.~Disease_status, scales="free")
 
-##THEN 
+phyla_plot<-practice_smelt %>% group_by(Sample, Phylum, Disease_status) %>%
+  summarise(phylum_sum=sum(Abundance))%>%
+  group_by(Disease_status, Phylum) %>% summarise(phylum_av=mean(phylum_sum))
+                                                
+
+ggplot(phyla_plot, aes(x=Disease_status, y=phylum_av, fill=Phylum)) + geom_bar(stat="identity")+facet_grid(.~Disease_status, scales="free")+
+  guides(fill=guide_legend(ncol=1))+theme(axis.text.x = element_text(angle = 90, hjust = 1),legend.key.size = unit(0.5,"line")) +ggtitle("Average Phyla per Group")
+```
 
 ## Including Plots
 
