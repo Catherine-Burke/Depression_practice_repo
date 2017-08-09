@@ -21,7 +21,8 @@ library("tidyverse")
 #first we assign names to filesbiom table must be
 biom<-"data/otu_table_final_json.biom"
 #Biom table must be in json format
-map<-read.table("data/mapping_practice_depression_corrected.txt", header=TRUE, row.names=1)
+#Before reading the map file, remove the hash from the first line of the QIIME mapping file
+map<-read.table("data/mapping_practice_depression_ps.txt", header=TRUE, row.names=1)
 #Normally would just use the read_tree command, but this particular tree is a bit different to ususal.
 tree<-read_tree("data/rep_set.tre")
 #import data to phyloseq
@@ -41,9 +42,9 @@ tax_table(practice2017)["",]
 #this returns the first 10 rows and columns of the otu table
 otu_table(practice2017)[1:10,1:10]
 #plot data - generic plotting options in phyloseq.
-plot_bar(practice2017)
-plot_bar(practice2017,x="Disease_status")
-plot_bar(practice2017,x="Disease_status", fill="Phylum")
+#plot_bar(practice2017)
+#plot_bar(practice2017,x="Disease_status")
+#plot_bar(practice2017,x="Disease_status", fill="Phylum")
 #You can also use ggplot for better plotting, but takes a bit of data wrangling, more on that below.
 
 #Five number summary of sequence coverage of samples
@@ -92,15 +93,16 @@ plot_richness(practice2017_rare, x="Disease_status", measures=c("Observed", "Cha
   geom_boxplot()+xlab("Group")+ylab("Diversity")
 #Convert alpha diversity estimates to a data form we can use for statistical testing
 practice2017_rare_richness<-as.matrix(estimate_richness(practice2017_rare, measures=c("Observed","Chao1","Shannon")))
-row.names(practice2017_rare_richness)<-row.names(sample_data(practice2017_rare))
-sinus_swabs_richness<-cbind(practice2017_rare_richness,sample_data(practice2017_rare))
+#row.names(practice2017_rare_richness)<-row.names(sample_data(practice2017_rare))
+practice2017_rare_richness<-cbind(practice2017_rare_richness,sample_data(practice2017_rare))
 practice2017_rare_richness
 #For comaparisons of alpha diversity of more than two groups, use the Kruskal-Wallis test 
 #Test if alpha diversity (observed) is significantly different between Disease_status groups
 kruskal.test(Observed ~ Disease_status, data=practice2017_rare_richness)
 #Now test if diversity is significantly different between controls and patients who were ever depressed (and recovering mdd groups (Original_status)
 #only two groups here so use Man-Whitney U test
-wilcox.test(Observed ~ Original_status, data=practice2017_rare_richness)
+
+#wilcox.test(Observed ~ Disease_status, data=practice2017_rare_richness)
 ```
 ###UP TO HERE - DO EXAMINATION OF NEGATIVE AND POSITIVE CONTROLS
 
